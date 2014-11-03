@@ -19,6 +19,7 @@ import com.mantkowicz.ai.actors.Column;
 import com.mantkowicz.ai.actors.Player;
 import com.mantkowicz.ai.actors.Zombie;
 import com.mantkowicz.ai.vars.Vars;
+import com.mantkowicz.ai.world.World;
 
 public class MapLoader 
 {		
@@ -41,6 +42,8 @@ public class MapLoader
 		columns = new Array<Column>();
 		
 		createActors(tiledMap);
+		
+		World.getInstance().initialize(columns, zombies, player);
 	}
 	
 	private void createActors(TiledMap map) 

@@ -1,6 +1,7 @@
 package com.mantkowicz.ai.actors;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.math.Vector2;
 import com.mantkowicz.ai.controller.Controller;
@@ -14,13 +15,18 @@ public class Player extends GameObject
 	{	
 		super("gfx/player.png", x, y);
 		
+		this.controller.setImmediatelyRotation(true);
+		
 		this.speed = 2;
 	}
 	
 	@Override
 	protected void step()
 	{
-		
+		if( MouseController.isMouseClicked() )
+		{
+			this.getStage().addActor( new Bullet(this) );
+		}
 	}
 	
 	@Override

@@ -15,11 +15,13 @@ public abstract class GameObject extends Actor
 	protected Texture texture;
 	protected TextureRegion textureRegion;
 
-	private Controller controller;
+	public Controller controller;
 	
 	protected Vector2 forward;
 	protected float speed;
 	protected float turbo;
+	
+	public float lastRotation;
 	public float rotation;
 	
 	protected abstract void step();
@@ -42,17 +44,22 @@ public abstract class GameObject extends Actor
 		forward = new Vector2(0, 0);
 		speed = 1;
 		turbo = 1;
+		
+		lastRotation = 0;
 		rotation = 0;
 	}
 	
 	@Override
 	public void act(float delta)
 	{
-		step();
-	
+		lastRotation = rotation;
+		
 		setForward();
 		setTurbo();
 		setRotation();
+		
+		step();
+		
 		
 		controller.act(forward, speed, turbo, rotation);
 	}
@@ -62,7 +69,12 @@ public abstract class GameObject extends Actor
 	{
 		super.draw(batch, parentAlpha);
 
-		batch.draw(textureRegion, this.getX(), this.getY(), textureRegion.getRegionWidth() / 2.0f, textureRegion.getRegionHeight() / 2.0f, textureRegion.getRegionWidth(), textureRegion.getRegionHeight(), 1.0f, 1.0f, rotation);
+		batch.draw(textureRegion, this.getX(), this.getY(), textureRegion.getRegionWidth() / 2.0f, textureRegion.getRegionHeight() / 2.0f, textureRegion.getRegionWidth(), textureRegion.getRegionHeight(), 1.0f, 1.0f, controller.getCurrentRotation());
+	}
+	
+	public Vector2 getCenter()
+	{
+		return new Vector2( this.getX() + (this.getWidth() / 2.0f), this.getY() + (this.getHeight() / 2.0f) );
 	}
 			
 	protected void dispose()

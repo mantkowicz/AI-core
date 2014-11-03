@@ -1,6 +1,8 @@
 package com.mantkowicz.ai.controller;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input.Buttons;
+import com.mantkowicz.ai.actors.Bullet;
 import com.mantkowicz.ai.logger.Logger;
 
 public class MouseController 
@@ -9,6 +11,8 @@ public class MouseController
 	
 	private static float lastX = 0;
 	private static float angle = 0;
+	
+	private static boolean buttonPressed = false;
 	
 	public static float getCursorAngle() 
 	{
@@ -26,5 +30,25 @@ public class MouseController
 		lastX = x;
 		
 		return angle * MOUSE_SENSITIVITY;
+	}
+	
+	public static boolean isMouseClicked()
+	{
+		if( Gdx.input.isTouched() && !buttonPressed )
+		{
+			buttonPressed = true;
+			return true;
+		}
+		else if( !Gdx.input.isTouched() )
+		{
+			buttonPressed = false;
+		}
+		
+		return false;
+		/*
+		{
+			buttonPressed = false;
+			return true;
+		}*/
 	}
 }

@@ -8,7 +8,6 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.mantkowicz.ai.controller.Controller;
-import com.mantkowicz.ai.logger.Logger;
 
 public abstract class GameObject extends Actor
 {	
@@ -17,7 +16,7 @@ public abstract class GameObject extends Actor
 
 	public Controller controller;
 	
-	protected Vector2 forward;
+	public Vector2 forward;
 	protected float speed;
 	protected float turbo;
 	
@@ -45,21 +44,17 @@ public abstract class GameObject extends Actor
 		speed = 1;
 		turbo = 1;
 		
-		lastRotation = 0;
 		rotation = 0;
 	}
 	
 	@Override
 	public void act(float delta)
 	{
-		lastRotation = rotation;
-		
 		setForward();
 		setTurbo();
 		setRotation();
 		
 		step();
-		
 		
 		controller.act(forward, speed, turbo, rotation);
 	}
@@ -76,8 +71,68 @@ public abstract class GameObject extends Actor
 	{
 		return new Vector2( this.getX() + (this.getWidth() / 2.0f), this.getY() + (this.getHeight() / 2.0f) );
 	}
+	
+	public float getRadius()
+	{
+		return (this.getWidth() / 2.0f);
+	}
+	
+	public float getSquaredRadius()
+	{
+		return this.getRadius() * this.getRadius();
+	}
+		
+	protected float getDistance(GameObject a, GameObject b)
+	{
+		Vector2 distance = new Vector2( a.getCenter().x - b.getCenter().x, a.getCenter().y - b.getCenter().y );
+		
+		return distance.len();
+	}
+	protected float getDistance(Vector2 a, Vector2 b)
+	{
+		Vector2 distance = new Vector2( a.x - b.x, a.y - b.y );
+		
+		return distance.len();
+	}
+	protected float getDistance(GameObject a, Vector2 b)
+	{
+		Vector2 distance = new Vector2( a.getCenter().x - b.x, a.getCenter().y - b.y );
+		
+		return distance.len();
+	}
+	protected float getDistance(Vector2 a, GameObject b)
+	{
+		Vector2 distance = new Vector2( a.x - b.getCenter().x, a.y - b.getCenter().y );
+		
+		return distance.len();
+	}
+	
+	protected float getAngle(GameObject a, GameObject b)
+	{
+		Vector2 distance = new Vector2( a.getCenter().x - b.getCenter().x, a.getCenter().y - b.getCenter().y );
+		
+		return distance.angle();
+	}
+	protected float getAngle(Vector2 a, Vector2 b)
+	{
+		Vector2 distance = new Vector2( a.x - b.x, a.y - b.y );
+		
+		return distance.angle();
+	}
+	protected float getAngle(GameObject a, Vector2 b)
+	{
+		Vector2 distance = new Vector2( a.getCenter().x - b.x, a.getCenter().y - b.y );
+		
+		return distance.angle();
+	}
+	protected float getAngle(Vector2 a, GameObject b)
+	{
+		Vector2 distance = new Vector2( a.x - b.getCenter().x, a.y - b.getCenter().y );
+		
+		return distance.angle();
+	}
 			
-	protected void dispose()
+	public void dispose()
 	{
 		texture.dispose();
 	}

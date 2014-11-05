@@ -5,13 +5,16 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
+import com.mantkowicz.ai.listener.Collision;
+import com.mantkowicz.ai.listener.ContactListener;
 import com.mantkowicz.ai.logger.Logger;
+import com.mantkowicz.ai.vars.CollisionSide;
 import com.mantkowicz.ai.vars.Vars;
+import com.mantkowicz.ai.world.World;
 
-public class Zombie extends GameObject
+public class Zombie extends GameObject implements Comparable<Zombie>
 {	
 	private enum ZombieState
 	{
@@ -20,165 +23,145 @@ public class Zombie extends GameObject
 		TRESSPASS
 	};
 	
-	private enum CollisionSide
-	{
-		NONE,
-		LEFT,
-		FRONT,
-		RIGHT,
-		LEFTFRONT,
-		RIGHTFRONT,
-		LEFTRIGHTFRONT
-	}
+	public Image rageImage;
+	public Image runImage;
 	
-	private Player player;
-	private Array<Column> columns;
-	private Array<Zombie> zombies;
+	public Collision collision;
 	
-	private Image rageImage;
-	private Image runImage;
-	
-	private float collisionAngle = 0;
-	
-	private Vector2 wanderTargetVector;
 	
 	private int currentFrame;
 	
 	private boolean safe;
-	public int power;
+	
+	public boolean isNeighbourInRage;
+	public int neighbours;
 	
 	public boolean rage = false;
 	
 	private ZombieState currentState;
 	
+	private Array<Texture> textures;
+	
+	private ContactListener contactListener;
+	
 	public Zombie(float x, float y)
 	{
 		super("gfx/zombie.png", x, y);
 		
+		contactListener = new ContactListener();
+		
+		textures = new Array<Texture>();
+		
+		this.rageImage = createImage("gfx/rage.png");
+		this.runImage = createImage("gfx/runAway.png");
+		
 		currentFrame = 0;
 		
-		wanderTargetVector = new Vector2(200.0f, 0.0f);
+		collision = new Collision(null, CollisionSide.NONE);
 		
 		safe = false;
-		power = 1;
+		neighbours = 1;
 					
 		currentState = ZombieState.TRESSPASS;
 	}
-	
-	public void setEnvironment(Player player, Array<Column> columns, Array<Zombie> zombies, Stage stage)
+		
+	private Image createImage(String path)
 	{
-		//--jeszcze dodawanie rageImage bo to dobre miejsce mimo ze nazwa zla
-		Texture t = new Texture( Gdx.files.internal("gfx/skull.png") );
-		t.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
+		Texture texture = new Texture( Gdx.files.internal(path) );
+		texture.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
 		
-		rageImage = new Image( t  );
-		rageImage.setVisible(false);
-		stage.addActor(rageImage);
+		textures.add(texture);
 		
-		t = new Texture( Gdx.files.internal("gfx/runAway.png") );
-		t.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
+		Image image = new Image(texture);
+		image.setVisible(false);
 		
-		runImage = new Image( t );
-		runImage.setVisible(false);
-		stage.addActor(runImage);
-		
-		this.columns = columns;
-		this.zombies = zombies;
-		
-		this.player = player;
+		return image;
 	}
 	
 	@Override
 	protected void step() 
-	{						
+	{		
+		Logger.log(this, collision.side);
+	
 		checkSafe();
 		updateState();
-			
+	
+		forward = new Vector2(0.0f, 1.0f);
+		
 		if( currentState == ZombieState.TRESSPASS )
 		{				
 			rageImage.setVisible(false);
 			runImage.setVisible(false);
+			
 			controller.setImmediatelyRotation(true);
+			
 			wander();
 		}
 		else if( currentState == ZombieState.RUNAWAY )
 		{				
 			rageImage.setVisible(false);
 			runImage.setVisible(true);
+			
 			controller.setImmediatelyRotation(true);
+			
 			runAway();
 		}
 		else if( currentState == ZombieState.ATTACK )
 		{
 			rageImage.setVisible(true);
 			runImage.setVisible(false);
+			
 			controller.setImmediatelyRotation(true);
+			
 			attack();
-		}
-		
-		CollisionSide collisionSide = this.handleCollision( rotation );
-		
-		float avoidAngle = 90 - ( Math.abs(collisionAngle) % 90 );
-		Logger.log(this, avoidAngle);
-		
-		if( collisionSide == CollisionSide.LEFT )
-		{
-			forward = new Vector2(0,1);
-
-			rotation -= avoidAngle;
-		}
-		else if( collisionSide == CollisionSide.RIGHT )
-		{
-			forward = new Vector2(0,1);
-			rotation += avoidAngle;
-		}
-		else if( collisionSide == CollisionSide.FRONT )
-		{
-			forward = new Vector2(0.0f, 1.0f);
-			rotation += avoidAngle;
-		}
-		else if( collisionSide == CollisionSide.RIGHTFRONT )
-		{
-			forward = new Vector2(0.0f, 1.0f);
-			rotation += avoidAngle;
-		}
-		else if( collisionSide == CollisionSide.LEFTFRONT )
-		{
-			forward = new Vector2(0.0f, 1.0f);
-			rotation -= avoidAngle;
-		}
-		else if( collisionSide == CollisionSide.LEFTRIGHTFRONT )
-		{
-			forward = new Vector2(0.0f, 1.0f);
-			rotation += avoidAngle;
 		}
 				
 		this.currentFrame++;
+
+		collision = contactListener.checkCollision(this);
+		
+		if( collision.side != CollisionSide.NONE )
+		{	forward.x = 0;
+		forward.y = 0;
+			rotation += CollisionSide.calculateAvoidAngle( this, collision );
+		}
 	}
 
 	private void attack()
 	{
+		turbo = 2.0f;
+		
 		rageImage.toFront();
 		rageImage.setRotation(-this.getRotation());
 		rageImage.setOrigin((rageImage.getWidth()/2.0f),(rageImage.getHeight()/2.0f));
 		rageImage.setPosition(this.getX() + (this.getWidth()/2.0f) - (rageImage.getWidth()/2.0f), this.getY() + (this.getHeight()/2.0f) - (rageImage.getHeight()/2.0f));
 		
-		
+		Player player = World.getInstance().player;
+			
 		seek( player.getX(), player.getY() );
-		
-		turbo = 2.0f;
 	}
 	
 	private void wander()
 	{		
 		if( this.currentFrame % 100 == 0 )
 		{
-			rotation = (float)Math.random() * 360.0f;
+			if( getDistance(this, World.getInstance().worldCenter) > Vars.ZOMBIE_AREA_WIDTH )
+			{
+				rotation = getAngle(this, World.getInstance().worldCenter);
+				controller.setImmediatelyRotation(true);
+			}
+			else
+			{
+				rotation = (float)Math.random() * 360.0f;
+			}
 		}
 	}
 	
 	private void checkSafe()
 	{
+		Array<Column> columns = World.getInstance().columns;
+		Player player = World.getInstance().player;
+		
 		boolean hidden = false;
 		safe = false;
 		for(Column column: columns)
@@ -193,7 +176,9 @@ public class Zombie extends GameObject
 	}
 	
 	private void runAway()
-	{turbo = 4.0f;
+	{
+		turbo = 1.5f;
+		
 		runImage.toFront();
 		runImage.setRotation(-this.getRotation());
 		runImage.setOrigin((rageImage.getWidth()/2.0f),(rageImage.getHeight()/2.0f));
@@ -207,6 +192,8 @@ public class Zombie extends GameObject
 	
 	private Column getNearestColumn()
 	{
+		Array<Column> columns = World.getInstance().columns;
+		
 		Column nearestColumn = columns.first();
 		
 		for(Column column: columns)
@@ -230,127 +217,34 @@ public class Zombie extends GameObject
 		rotation = targetVector.nor().angle() - 90.0f;
 	}
 	
-	private CollisionSide handleCollision(float r)
+	
+		
+	public void updateNeighbours()
 	{
-		boolean left = false, right = false, front = false;
+		this.neighbours = 0;
 		
-		float[] vertices = this.getCollisionBoxVertices(r);
-		
-		CollisionSide collisionSide = CollisionSide.NONE;
-		
-		for(Column column: columns)
+		for(Zombie zombie: World.getInstance().zombies)
 		{
-			//front side
-			if( Intersector.intersectSegmentCircle(new Vector2(vertices[2],vertices[3]), new Vector2(vertices[4], vertices[5]), column.getCenter(), column.getSquaredRadius() ) )
+			if( zombie.equals(this) )
 			{
-				front = true;
+				continue;
 			}
 			
-			//left side
-			if( Intersector.intersectSegmentCircle(new Vector2(vertices[0],vertices[1]), new Vector2(vertices[2], vertices[3]), column.getCenter(), column.getSquaredRadius() ) )
+			if( getDistance(this, zombie) < Vars.DISTANCE )
 			{
-				left = true;
-			}
-						
-			//right side
-			if( Intersector.intersectSegmentCircle(new Vector2(vertices[4],vertices[5]), new Vector2(vertices[6], vertices[7]), column.getCenter(), column.getSquaredRadius() ) )
-			{
-				right = true;
-			}	
-			
-			if( left || right || front )
-			{
-				Vector2 colvec = new Vector2( this.getCenter().x - column.getCenter().x, this.getCenter().y - column.getCenter().y );
-				collisionAngle = colvec.angle();
-			}
-		}
-		
-		for(Zombie zombie: zombies)
-		{
-			if( zombie.getX() == this.getX() && zombie.getY() == this.getY() ) continue;
-			
-			float zombieSquaredRadius = ( (zombie.getWidth() + 40.0f) / 2.0f);
-			zombieSquaredRadius *= zombieSquaredRadius;
-			
-			//front side
-			if( Intersector.intersectSegmentCircle(new Vector2(vertices[2],vertices[3]), new Vector2(vertices[4], vertices[5]), zombie.getCenter(), zombieSquaredRadius ) )
-			{
-				front = true;
-			}
-			
-			//left side
-			if( Intersector.intersectSegmentCircle(new Vector2(vertices[0],vertices[1]), new Vector2(vertices[2], vertices[3]), zombie.getCenter(), zombieSquaredRadius ) )
-			{
-				left = true;
-			}
+				if( zombie.rage )
+				{
+					this.rage = true;
+				}
 				
-			//right side
-			if( Intersector.intersectSegmentCircle(new Vector2(vertices[4],vertices[5]), new Vector2(vertices[6], vertices[7]), zombie.getCenter(), zombieSquaredRadius ) )
-			{
-				right = true;
-			}
-			
-			if( left || right || front )
-			{
-				Vector2 colvec = new Vector2( this.getCenter().x - zombie.getCenter().x, this.getCenter().y - zombie.getCenter().y );
-				collisionAngle = colvec.angle();
+				this.neighbours++;
 			}
 		}
-		
-		if( left && right && front )
-		{
-			collisionSide = CollisionSide.LEFTRIGHTFRONT;
-		}
-		else if( !left && right && front )
-		{
-			collisionSide = CollisionSide.RIGHTFRONT;
-		}
-		else if( left && !right && front )
-		{
-			collisionSide = CollisionSide.LEFTFRONT;
-		}
-		else if( !left && !right && front )
-		{
-			collisionSide = CollisionSide.FRONT;
-		}
-		else if( !left && right && !front )
-		{
-			collisionSide = CollisionSide.RIGHT;
-		}
-		else if( left && !right && !front )
-		{
-			collisionSide = CollisionSide.LEFT;
-		}
-		
-		return collisionSide;
 	}
-	
-	public float[] getCollisionBoxVertices(float r)
-	{
-		Vector2 v1 = new Vector2( -this.getWidth() / 2.0f, 0 );
-		Vector2 v2 = new Vector2( -this.getWidth() / 2.0f, this.getWidth() );
-		Vector2 v3 = new Vector2(  this.getWidth() / 2.0f, this.getWidth() );
-		Vector2 v4 = new Vector2(  this.getWidth() / 2.0f, 0 );
 		
-		v1.rotate( r );
-		v2.rotate( r );
-		v3.rotate( r );
-		v4.rotate( r );
-		
-		v1.add(this.getCenter().add(forward));
-		v2.add(this.getCenter().add(forward));
-		v3.add(this.getCenter().add(forward));
-		v4.add(this.getCenter().add(forward));
-		
-		float[] vertices = new float[]{ v1.x, v1.y, v2.x, v2.y, v3.x, v3.y, v4.x, v4.y };
-		
-		return vertices;
-	}
-	
 	@Override
 	protected void setForward() 
 	{
-		forward = new Vector2(0.0f, 1.0f);
 	}
 
 	@Override
@@ -365,7 +259,7 @@ public class Zombie extends GameObject
 	
 	protected void updateState()
 	{
-		if( rage )
+		if( rage || currentState == ZombieState.ATTACK )
 		{
 			currentState = ZombieState.ATTACK;
 		}
@@ -379,6 +273,33 @@ public class Zombie extends GameObject
 			controller.setImmediatelyRotation(false);
 			
 			currentState = ZombieState.RUNAWAY;
+		}
+	}
+	
+	public void dispose()
+	{
+		super.dispose();
+		
+		for(Texture texture: textures)
+		{
+			texture.dispose();
+		}
+	}
+
+	@Override
+	public int compareTo(Zombie zombie) 
+	{
+		if( zombie.neighbours > this.neighbours )
+		{
+			return 1;
+		}
+		else if( zombie.neighbours < this.neighbours )
+		{
+			return -1;
+		}
+		else
+		{
+			return 0;
 		}
 	}
 }

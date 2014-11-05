@@ -27,30 +27,7 @@ public class Bullet extends GameObject
 	{
 		if(this.maxDistance.len2() < 100)
 		{
-			this.clear();
-			this.remove();
-		}
-		
-		for(Column column: World.getInstance().columns)
-		{
-			Vector2 distance = new Vector2( this.getCenter().x - column.getCenter().x, this.getCenter().y - column.getCenter().y );
-			
-			if( distance.len() < (column.getRadius() + 5.0f) )
-			{
-				this.clear();
-				this.remove();
-			}
-		}
-		
-		for(Zombie zombie: World.getInstance().zombies)
-		{
-			Vector2 distance = new Vector2( this.getCenter().x - zombie.getCenter().x, this.getCenter().y - zombie.getCenter().y );
-			
-			if( distance.len() < (zombie.getWidth()/2.0f + 5.0f) )
-			{
-				zombie.clear();
-				zombie.remove();
-			}
+			World.getInstance().removeBullet(this);
 		}
 		
 		this.maxDistance.sub(this.bulletForward);

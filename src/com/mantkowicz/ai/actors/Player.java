@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.mantkowicz.ai.controller.Controller;
 import com.mantkowicz.ai.controller.MouseController;
 import com.mantkowicz.ai.logger.Logger;
+import com.mantkowicz.ai.world.World;
 
 
 public class Player extends GameObject 
@@ -25,7 +26,7 @@ public class Player extends GameObject
 	{
 		if( MouseController.isMouseClicked() )
 		{
-			this.getStage().addActor( new Bullet(this) );
+			World.getInstance().addBullet( new Bullet(this) );
 		}
 	}
 	

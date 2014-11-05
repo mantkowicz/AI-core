@@ -31,7 +31,10 @@ public class MapLoader
 	
 	Array<Zombie> zombies;
 	Array<Column> columns;
+	
 	Player player;
+	
+	Vector2 worldCenter;
 	
 	public void loadMap(String mapPath)
 	{	
@@ -41,9 +44,45 @@ public class MapLoader
 		zombies = new Array<Zombie>();
 		columns = new Array<Column>();
 		
-		createActors(tiledMap);
+		createPlayer(tiledMap);
 		
-		World.getInstance().initialize(columns, zombies, player);
+		createActors(tiledMap);
+	}
+	
+	private void createPlayer(TiledMap map) 
+	{
+		MapLayers layers = map.getLayers();
+		Iterator<MapLayer> layersIt = layers.iterator();
+		
+		while(layersIt.hasNext())
+		{
+			MapLayer layer = layersIt.next();
+			
+			MapObjects objects = layer.getObjects();
+			Iterator<MapObject> objectIt = objects.iterator();
+			
+			while(objectIt.hasNext()) 
+			{
+				MapObject mapObject = objectIt.next();
+				
+				if (mapObject instanceof TextureMapObject)
+				{
+					continue;
+				}
+				else
+				{					
+					if( checkObjectType(mapObject, "player") )
+					{
+						float x = Float.parseFloat( mapObject.getProperties().get("x").toString() );
+						float y = Float.parseFloat( mapObject.getProperties().get("y").toString() );
+						
+						player = new Player(x, y);
+						
+						worldCenter = new Vector2(x, y);
+					}
+				}
+			}
+		}
 	}
 	
 	private void createActors(TiledMap map) 
@@ -79,14 +118,6 @@ public class MapLoader
 					{
 						columns.add( new Column(x, y) );
 					}
-					else if( checkObjectType(mapObject, "player") )
-					{
-						player = new Player(x, y);
-					}
-					
-					ShapeRenderer sh = new ShapeRenderer();
-					sh.begin(ShapeType.Filled);
-					
 				}
 			}
 		}
@@ -105,6 +136,11 @@ public class MapLoader
 	public Player getPlayer()
 	{
 		return player;
+	}
+	
+	public Vector2 getWorldCenter()
+	{
+		return worldCenter;
 	}
 	
 	public Vector2 getMapSize()

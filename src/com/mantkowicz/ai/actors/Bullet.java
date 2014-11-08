@@ -1,22 +1,20 @@
 package com.mantkowicz.ai.actors;
 
 import com.badlogic.gdx.math.Vector2;
+import com.mantkowicz.ai.vars.Vars;
 import com.mantkowicz.ai.world.World;
 
 
 public class Bullet extends GameObject
 {
-	private float bulletSpeed = 20.0f;
-	
-	private Vector2 bulletForward;
 	private Vector2 maxDistance;
+	private Player player;
 	
 	public Bullet(Player player)
 	{
 		super("gfx/bullet.png", player.getCenter().x, player.getCenter().y);
-		
-		this.bulletForward = new Vector2(0, bulletSpeed);
-		this.bulletForward.rotate( -player.getRotation() );
+	
+		this.player = player;
 		
 		this.maxDistance = new Vector2(0, 1500.0f);
 		this.maxDistance.rotate( -player.getRotation() );
@@ -25,23 +23,23 @@ public class Bullet extends GameObject
 	@Override
 	protected void step() 
 	{
-		if(this.maxDistance.len2() < 100)
+		if( Vars.getDistance(this, World.getInstance().worldCenter) > Vars.ZOMBIE_AREA_WIDTH )
 		{
 			World.getInstance().removeBullet(this);
 		}
-		
-		this.maxDistance.sub(this.bulletForward);
 	}
 			
 	@Override
 	protected void setForward() 
 	{		
-		forward = this.bulletForward;
+		forward = new Vector2(0, 1);
+		forward.rotate( -player.getRotation() );
 	}
 
 	@Override
 	protected void setTurbo() 
 	{	
+		this.turbo = 20.0f;
 	}
 
 	@Override

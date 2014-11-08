@@ -2,6 +2,8 @@ package com.mantkowicz.ai.controller;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.mantkowicz.ai.listener.Collision;
+import com.mantkowicz.ai.listener.ContactListener;
 import com.mantkowicz.ai.logger.Logger;
 
 public class Controller
@@ -19,10 +21,9 @@ public class Controller
 		currentRotation = 0.0f;
 	}
 	
-	public void act(Vector2 forward, float speed, float turbo, float rotation)
-	{
-		forward.scl(speed);
-		forward.scl(turbo);
+	public void act(Vector2 forward, float speed, float turbo, float rotation, Vector2 sum)
+	{		
+		
 		
 		targetRotation = (rotation ) % 360;
 		
@@ -45,6 +46,12 @@ public class Controller
 			
 		actor.setRotation( -currentRotation );
 		forward.rotate( currentRotation );
+		forward.add(sum);
+		Logger.log(this, "FORWARD+ = " + forward.toString());
+		forward.nor();
+		
+		forward.scl(speed);
+		forward.scl(turbo);
 		
 		actor.setPosition( actor.getX() + forward.x, actor.getY() + forward.y);
 	}

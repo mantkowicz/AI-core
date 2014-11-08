@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
+import com.mantkowicz.ai.exceptions.NoRotationException;
 import com.mantkowicz.ai.listener.Collision;
 import com.mantkowicz.ai.listener.ContactListener;
 import com.mantkowicz.ai.logger.Logger;
@@ -57,12 +58,14 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 		
 		currentFrame = 0;
 		
-		collision = new Collision(null, CollisionSide.NONE);
+		collision = new Collision();
 		
 		safe = false;
 		neighbours = 1;
 					
 		currentState = ZombieState.TRESSPASS;
+		
+		this.staticObject = false;
 	}
 		
 	private Image createImage(String path)
@@ -81,8 +84,6 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 	@Override
 	protected void step() 
 	{		
-		Logger.log(this, collision.side);
-	
 		checkSafe();
 		updateState();
 	
@@ -120,10 +121,17 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 
 		collision = contactListener.checkCollision(this);
 		
-		if( collision.side != CollisionSide.NONE )
-		{	forward.x = 0;
-		forward.y = 0;
-			rotation += CollisionSide.calculateAvoidAngle( this, collision );
+		if( !collision.isNull() )
+		{	Logger.log(this, "DUPA");
+			try
+			{
+				rotation += CollisionSide.calculateAvoidAngle( this, collision );
+			}
+			catch( NoRotationException e )
+			{
+				forward.x = 0;
+				forward.y = 0;
+			}
 		}
 	}
 
@@ -145,9 +153,9 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 	{		
 		if( this.currentFrame % 100 == 0 )
 		{
-			if( getDistance(this, World.getInstance().worldCenter) > Vars.ZOMBIE_AREA_WIDTH )
+			if( Vars.getDistance(this, World.getInstance().worldCenter) > Vars.ZOMBIE_AREA_WIDTH )
 			{
-				rotation = getAngle(this, World.getInstance().worldCenter);
+				rotation = Vars.getAngle(this, World.getInstance().worldCenter);
 				controller.setImmediatelyRotation(true);
 			}
 			else
@@ -181,8 +189,8 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 		
 		runImage.toFront();
 		runImage.setRotation(-this.getRotation());
-		runImage.setOrigin((rageImage.getWidth()/2.0f),(rageImage.getHeight()/2.0f));
-		runImage.setPosition(this.getX() + (this.getWidth()/2.0f) - (rageImage.getWidth()/2.0f), this.getY() + (this.getHeight()/2.0f) - (rageImage.getHeight()/2.0f));
+		runImage.setOrigin((runImage.getWidth()/2.0f),(runImage.getHeight()/2.0f));
+		runImage.setPosition(this.getX() + (this.getWidth()/2.0f) - (runImage.getWidth()/2.0f), this.getY() + (this.getHeight()/2.0f) - (runImage.getHeight()/2.0f));
 		
 		
 		Column nearestColumn = getNearestColumn();
@@ -230,7 +238,7 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 				continue;
 			}
 			
-			if( getDistance(this, zombie) < Vars.DISTANCE )
+			if( Vars.getDistance(this, zombie) < Vars.DISTANCE )
 			{
 				if( zombie.rage )
 				{

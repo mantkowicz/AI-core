@@ -54,6 +54,11 @@ public class World
 			stage.addActor(zombie.runImage);
 		}
 		
+		for(Column column: columns)
+		{
+			column.toBack();
+		}
+		
 		this.worldCenter = worldCenter;
 	}
 	

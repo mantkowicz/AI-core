@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.maps.tiled.TiledMapRenderer;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
@@ -19,12 +20,13 @@ import com.mantkowicz.ai.listener.ContactListener;
 import com.mantkowicz.ai.logger.Logger;
 import com.mantkowicz.ai.main.Main;
 import com.mantkowicz.ai.mapLoader.MapLoader;
+import com.mantkowicz.ai.vars.CollisionSide;
 import com.mantkowicz.ai.vars.Vars;
 import com.mantkowicz.ai.world.World;
 
 public class GameScreen implements Screen 
 {
-	private final boolean DRAW_DEBUG = true;
+	private final boolean DRAW_DEBUG = false;
 	
 	private ShapeRenderer shapeRenderer;
 	
@@ -112,8 +114,10 @@ public class GameScreen implements Screen
 			shapeRenderer.setProjectionMatrix(camera.combined);
 			shapeRenderer.begin(ShapeType.Line);
 	
-			for(Zombie zombie: world.zombies)
+			for(int i = 0; i < world.zombies.size; i++)
 			{
+				Zombie zombie = world.zombies.get(i);
+				
 				shapeRenderer.setColor(1, 0, 0, 1);
 				shapeRenderer.circle(zombie.getCenter().x, zombie.getCenter().y, zombie.getRadius());
 				
@@ -121,8 +125,29 @@ public class GameScreen implements Screen
 				shapeRenderer.circle(zombie.getCenter().x, zombie.getCenter().y, Vars.DISTANCE / 2.0f);
 	
 				shapeRenderer.setColor(0, 0, 1, 1);
-				float[] vertices = contactListener.getCollisionBoxVertices( zombie );
-				shapeRenderer.polygon(vertices);
+
+				if(contactListener.checkCollision(zombie).collisionSides.contains(CollisionSide.LEFT, true))
+				{
+					shapeRenderer.setColor(1, 1, 0, 1);
+				}
+				
+				Array<Vector2> left = contactListener.getLeftCollisionPoint(zombie, new Vector2(0,0));
+				Array<Vector2> right = contactListener.getRightCollisionPoint(zombie, new Vector2(0,0));
+				
+				for(Vector2 point: left)
+				{
+					shapeRenderer.circle(point.x, point.y, 2.0f);
+				}
+				
+				if(contactListener.checkCollision(zombie).collisionSides.contains(CollisionSide.RIGHT, true))
+				{
+					shapeRenderer.setColor(1, 1, 0, 1);
+				}
+
+				for(Vector2 point: right)
+				{
+					shapeRenderer.circle(point.x, point.y, 2.0f);
+				}
 			}
 			
 			for(Column column: world.columns)

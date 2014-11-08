@@ -3,6 +3,7 @@ package com.mantkowicz.ai.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -10,14 +11,11 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.maps.tiled.TiledMapRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mantkowicz.ai.actors.Column;
-import com.mantkowicz.ai.actors.Player;
 import com.mantkowicz.ai.actors.Zombie;
 import com.mantkowicz.ai.listener.ContactListener;
-import com.mantkowicz.ai.logger.Logger;
 import com.mantkowicz.ai.main.Main;
 import com.mantkowicz.ai.mapLoader.MapLoader;
 import com.mantkowicz.ai.vars.CollisionSide;
@@ -45,6 +43,8 @@ public class GameScreen implements Screen
 	private float lastAngle;
 	
 	private ContactListener contactListener;
+	
+	private FPSLogger fpsLogger = new FPSLogger();
 	
 	public GameScreen(Main game)
 	{				
@@ -111,6 +111,8 @@ public class GameScreen implements Screen
 		
 		if( DRAW_DEBUG )
 		{
+			fpsLogger.log();
+			
 			shapeRenderer.setProjectionMatrix(camera.combined);
 			shapeRenderer.begin(ShapeType.Line);
 	
@@ -126,28 +128,22 @@ public class GameScreen implements Screen
 	
 				shapeRenderer.setColor(0, 0, 1, 1);
 
-				if(contactListener.checkCollision(zombie).collisionSides.contains(CollisionSide.LEFT, true))
+				if(contactListener.checkCollision(zombie).columnCollisionSides.contains(CollisionSide.PRELEFT, true))
 				{
 					shapeRenderer.setColor(1, 1, 0, 1);
 				}
 				
-				Array<Vector2> left = contactListener.getLeftCollisionPoint(zombie, new Vector2(0,0));
-				Array<Vector2> right = contactListener.getRightCollisionPoint(zombie, new Vector2(0,0));
+				Vector2 left = contactListener.getLeftCollisionPoint(zombie, new Vector2(0,0));
+				Vector2 right = contactListener.getRightCollisionPoint(zombie, new Vector2(0,0));
 				
-				for(Vector2 point: left)
-				{
-					shapeRenderer.circle(point.x, point.y, 2.0f);
-				}
+				shapeRenderer.circle(left.x, left.y, 2.0f);
 				
-				if(contactListener.checkCollision(zombie).collisionSides.contains(CollisionSide.RIGHT, true))
+				if(contactListener.checkCollision(zombie).columnCollisionSides.contains(CollisionSide.PRERIGHT, true))
 				{
 					shapeRenderer.setColor(1, 1, 0, 1);
 				}
 
-				for(Vector2 point: right)
-				{
-					shapeRenderer.circle(point.x, point.y, 2.0f);
-				}
+				shapeRenderer.circle(right.x, right.y, 2.0f);
 			}
 			
 			for(Column column: world.columns)
@@ -198,7 +194,7 @@ public class GameScreen implements Screen
 		{
 			world.zombies.get(i).updateNeighbours();
 		
-			if( world.zombies.get(i).isNeighbourInRage || world.zombies.get(i).neighbours >= Vars.MIN_GROUP_SIZE )
+			if( world.zombies.get(i).isNeighbourInRage || world.zombies.get(i).neighbours >= Vars.MIN_GROUP_SIZE || world.zombies.size <= Vars.MIN_GROUP_SIZE + 1 )
 			{
 				world.zombies.get(i).rage = true;
 			}

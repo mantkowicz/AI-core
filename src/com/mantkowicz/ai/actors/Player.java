@@ -1,14 +1,10 @@
 package com.mantkowicz.ai.actors;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.math.Vector2;
-import com.mantkowicz.ai.controller.Controller;
 import com.mantkowicz.ai.controller.MouseController;
-import com.mantkowicz.ai.logger.Logger;
 import com.mantkowicz.ai.world.World;
-
 
 public class Player extends GameObject 
 {			
@@ -19,6 +15,8 @@ public class Player extends GameObject
 		this.controller.setImmediatelyRotation(true);
 		
 		this.speed = 2;
+	
+		this.staticObject = false;
 	}
 	
 	@Override
@@ -26,11 +24,15 @@ public class Player extends GameObject
 	{
 		if( MouseController.isMouseClicked() )
 		{
-			World.getInstance().addBullet( new Bullet(this) );
+			World.getInstance().addBullet( new Bullet() );
 		}
+		
+		setForward();
+		setTurbo();
+		
+		this.rotation = MouseController.getCursorAngle();	
 	}
 	
-	@Override
 	protected void setForward() 
 	{
 		forward = new Vector2(0.0f, 0.0f);
@@ -41,16 +43,9 @@ public class Player extends GameObject
 		if( Gdx.input.isKeyPressed(Keys.D)) forward = new Vector2(1.0f, 0.0f);
 	}
 
-	@Override
 	protected void setTurbo() 
 	{
 		if( Gdx.input.isKeyPressed(Keys.SHIFT_LEFT) ) turbo = 3.0f;
 		else turbo = 1.0f;
-	}
-
-	@Override
-	protected void setRotation() 
-	{
-		rotation = MouseController.getCursorAngle();	
 	}
 }

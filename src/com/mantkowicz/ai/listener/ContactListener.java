@@ -1,7 +1,6 @@
 package com.mantkowicz.ai.listener;
 
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.Array;
 import com.mantkowicz.ai.actors.Bullet;
 import com.mantkowicz.ai.actors.Column;
 import com.mantkowicz.ai.actors.GameObject;
@@ -42,108 +41,77 @@ public class ContactListener
 			}
 		}
 	}
-		
-	public Collision checkCollision2(GameObject object)
-	{
-		Collision collision = new Collision();
-		
-		//---------------
-		
-		for(Column column: World.getInstance().columns)
-		{
-			if( Vars.getDistance(object, column) <= (column.getRadius() + object.getRadius() ) )
-			{
-				collision.addCollision(column, CollisionSide.FRONT);
-			}
-		}
-		
-		for(Zombie zombie: World.getInstance().zombies)
-		{
-			if( Vars.getDistance(object, zombie) <= (zombie.getRadius() + object.getRadius() ) )
-			{
-				collision.addCollision(zombie, CollisionSide.FRONT);
-			}
-		}
-		
-		//---------------
-		
-		return collision;
-	}
-	
+			
 	public Collision checkCollision(GameObject object)
 	{	
 		Vector2 stepVector = new Vector2(object.forward.x, object.forward.y);
 		stepVector.rotate( object.rotation );
 		
-		Array<Vector2> leftPoint = getLeftCollisionPoint(object, stepVector);
-		Array<Vector2> rightPoint = getRightCollisionPoint(object, stepVector);
+		Vector2 leftPoint = getLeftCollisionPoint(object, stepVector);
+		Vector2 rightPoint = getRightCollisionPoint(object, stepVector);
 		
 		Collision collision = new Collision();
 		
-		
 		for(Column column: World.getInstance().columns)
 		{
-			boolean left = false, right = false;
-			
-			for(Vector2 point: leftPoint)
+			if( object.equals(column) )
 			{
-				if( isPointInObject(point, column) )
-				{
-					left = true;
-					break;
-				}
+				continue;
 			}
 			
-			for(Vector2 point: rightPoint)
+			if( Vars.getDistance(object, column) <= (column.getRadius() + object.getRadius() ) )
 			{
-				if( isPointInObject(point, column) )
-				{
-					right = true;
-					break;
-				}
+				collision.addCollision(column, CollisionSide.DIRECT);
+			}
+			else if( isPointInObject(leftPoint, column) )
+			{
+				collision.addCollision(column, CollisionSide.PRELEFT);
+				break;
+			}
+			else if( isPointInObject(rightPoint, column) )
+			{
+				collision.addCollision(column, CollisionSide.PRERIGHT);
+				break;
+			}
+		}
+		
+		for(Zombie zombie: World.getInstance().zombies)
+		{
+			if( object.equals(zombie) )
+			{
+				continue;
 			}
 			
-			if( left && right )
+			if( Vars.getDistance(object, zombie) <= (zombie.getRadius() + object.getRadius() ) )
 			{
-				collision.addCollision(column, CollisionSide.LEFT);
-			}
-			else if( left && !right )
-			{
-				collision.addCollision(column, CollisionSide.LEFT);
-			}
-			else if( !left && right )
-			{
-				collision.addCollision(column, CollisionSide.RIGHT);
+				collision.addCollision(zombie, CollisionSide.DIRECT);
 			}
 		}
 		
 		return collision;
 	}
 	
-	public Array<Vector2> getLeftCollisionPoint(GameObject object, Vector2 stepVector)
+	public Vector2 getLeftCollisionPoint(GameObject object, Vector2 stepVector)
 	{
 		return getCollisionPoint( object, stepVector, -1.0f );
 	}
 	
-	public Array<Vector2> getRightCollisionPoint(GameObject object, Vector2 stepVector)
+	public Vector2 getRightCollisionPoint(GameObject object, Vector2 stepVector)
 	{
 		return getCollisionPoint( object, stepVector, 1.0f );
 	}
 	
-	public Array<Vector2> getCollisionPoint(GameObject object, Vector2 stepVector, float parameter)
+	private Vector2 getCollisionPoint(GameObject object, Vector2 stepVector, float parameter)
 	{
 		float x = (object.getWidth() / 2.0f) * parameter;
-		float y1 = object.getHeight();
+		float y = object.getHeight();
 		
-		Vector2 v1 = new Vector2( x, y1 );
+		Vector2 v = new Vector2( x, y );
 		
-		v1.rotate( object.rotation );
+		v.rotate( object.rotation );
 		
-		v1.add( object.getCenter() );
-		v1.add( stepVector );
-				
-		Array<Vector2> v = new Array<Vector2>();
-		v.add(v1);
+		v.add( object.getCenter() );
+		v.add( stepVector );
 		
 		return v;
 	}

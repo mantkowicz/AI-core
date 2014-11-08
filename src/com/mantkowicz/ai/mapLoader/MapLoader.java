@@ -2,8 +2,6 @@ package com.mantkowicz.ai.mapLoader;
 
 import java.util.Iterator;
 
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapLayers;
 import com.badlogic.gdx.maps.MapObject;
@@ -18,8 +16,6 @@ import com.badlogic.gdx.utils.Array;
 import com.mantkowicz.ai.actors.Column;
 import com.mantkowicz.ai.actors.Player;
 import com.mantkowicz.ai.actors.Zombie;
-import com.mantkowicz.ai.vars.Vars;
-import com.mantkowicz.ai.world.World;
 
 public class MapLoader 
 {		
@@ -156,22 +152,6 @@ public class MapLoader
 		int mapPixelHeight = mapHeight * tilePixelHeight;
 
 		return new Vector2(mapPixelWidth, mapPixelHeight);
-	}
-	
-	private boolean isPropertyTrue(TiledMap map, String propertyKey)
-	{
-		if( "true".equals((String)map.getProperties().get( propertyKey )) ) return true;
-		return false;
-	}
-	private boolean isPropertyTrue(MapLayer layer, String propertyKey)
-	{
-		if( "true".equals((String)layer.getProperties().get( propertyKey )) ) return true;
-		return false;
-	}
-	private boolean isPropertyTrue(MapObject object, String propertyKey)
-	{
-		if( "true".equals((String)object.getProperties().get( propertyKey )) ) return true;
-		return false;
 	}
 	
 	private boolean checkObjectType(MapObject object, String typeName)

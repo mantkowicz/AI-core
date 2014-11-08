@@ -1,9 +1,6 @@
 package com.mantkowicz.ai.controller;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input.Buttons;
-import com.mantkowicz.ai.actors.Bullet;
-import com.mantkowicz.ai.logger.Logger;
 
 public class MouseController 
 {

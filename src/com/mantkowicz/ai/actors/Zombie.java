@@ -1,16 +1,10 @@
 package com.mantkowicz.ai.actors;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
 import com.mantkowicz.ai.exceptions.NoRotationException;
-import com.mantkowicz.ai.listener.Collision;
-import com.mantkowicz.ai.listener.ContactListener;
-import com.mantkowicz.ai.logger.Logger;
 import com.mantkowicz.ai.vars.CollisionSide;
 import com.mantkowicz.ai.vars.Vars;
 import com.mantkowicz.ai.world.World;
@@ -27,66 +21,33 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 	public Image rageImage;
 	public Image runImage;
 	
-	public Collision collision;
-	
-	
-	private int currentFrame;
-	
-	private boolean safe;
-	
 	public boolean isNeighbourInRage;
-	public int neighbours;
-	
 	public boolean rage = false;
 	
-	private ZombieState currentState;
+	public int neighbours = 1;
 	
-	private Array<Texture> textures;
+	private boolean safe = false;
+	private ZombieState currentState = ZombieState.TRESSPASS;
 	
-	private ContactListener contactListener;
+	private int currentFrame;
 	
 	public Zombie(float x, float y)
 	{
 		super("gfx/zombie.png", x, y);
 		
-		contactListener = new ContactListener();
-		
-		textures = new Array<Texture>();
-		
 		this.rageImage = createImage("gfx/rage.png");
 		this.runImage = createImage("gfx/runAway.png");
 		
-		currentFrame = 0;
-		
-		collision = new Collision();
-		
-		safe = false;
-		neighbours = 1;
-					
-		currentState = ZombieState.TRESSPASS;
-		
 		this.staticObject = false;
 	}
-		
-	private Image createImage(String path)
-	{
-		Texture texture = new Texture( Gdx.files.internal(path) );
-		texture.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
-		
-		textures.add(texture);
-		
-		Image image = new Image(texture);
-		image.setVisible(false);
-		
-		return image;
-	}
-	
+			
 	@Override
 	protected void step() 
-	{		
+	{	
 		checkSafe();
 		updateState();
 	
+		this.currentFrame++;
 		forward = new Vector2(0.0f, 1.0f);
 		
 		if( currentState == ZombieState.TRESSPASS )
@@ -94,7 +55,7 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 			rageImage.setVisible(false);
 			runImage.setVisible(false);
 			
-			controller.setImmediatelyRotation(true);
+			controller.setImmediatelyRotation(false);
 			
 			wander();
 		}
@@ -116,13 +77,9 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 			
 			attack();
 		}
-				
-		this.currentFrame++;
-
-		collision = contactListener.checkCollision(this);
-		
-		if( !collision.isNull() )
-		{	Logger.log(this, "DUPA");
+						
+		if( collision.willBeColumnCollision() )
+		{	
 			try
 			{
 				rotation += CollisionSide.calculateAvoidAngle( this, collision );
@@ -131,36 +88,6 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 			{
 				forward.x = 0;
 				forward.y = 0;
-			}
-		}
-	}
-
-	private void attack()
-	{
-		turbo = 2.0f;
-		
-		rageImage.toFront();
-		rageImage.setRotation(-this.getRotation());
-		rageImage.setOrigin((rageImage.getWidth()/2.0f),(rageImage.getHeight()/2.0f));
-		rageImage.setPosition(this.getX() + (this.getWidth()/2.0f) - (rageImage.getWidth()/2.0f), this.getY() + (this.getHeight()/2.0f) - (rageImage.getHeight()/2.0f));
-		
-		Player player = World.getInstance().player;
-			
-		seek( player.getX(), player.getY() );
-	}
-	
-	private void wander()
-	{		
-		if( this.currentFrame % 100 == 0 )
-		{
-			if( Vars.getDistance(this, World.getInstance().worldCenter) > Vars.ZOMBIE_AREA_WIDTH )
-			{
-				rotation = Vars.getAngle(this, World.getInstance().worldCenter);
-				controller.setImmediatelyRotation(true);
-			}
-			else
-			{
-				rotation = (float)Math.random() * 360.0f;
 			}
 		}
 	}
@@ -183,6 +110,42 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 		}
 	}
 	
+	protected void updateState()
+	{
+		if( rage || currentState == ZombieState.ATTACK )
+		{
+			currentState = ZombieState.ATTACK;
+		}
+		else if( currentState != ZombieState.ATTACK && safe )
+		{
+			currentState = ZombieState.TRESSPASS;
+		}
+		else if( currentState != ZombieState.ATTACK && !safe )
+		{
+			rageImage.setVisible(false);
+			controller.setImmediatelyRotation(false);
+			
+			currentState = ZombieState.RUNAWAY;
+		}
+	}
+
+	//---AI functions
+	private void wander()
+	{		
+		if( this.currentFrame % 100 == 0 )
+		{
+			if( Vars.getDistance(this, World.getInstance().worldCenter) > Vars.ZOMBIE_AREA_WIDTH )
+			{
+				rotation = Vars.getAngle(this, World.getInstance().worldCenter);
+				controller.setImmediatelyRotation(true);
+			}
+			else
+			{
+				rotation = (float)Math.random() * 360.0f;
+			}
+		}
+	}
+	
 	private void runAway()
 	{
 		turbo = 1.5f;
@@ -197,6 +160,29 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 		
 		seek(nearestColumn.getSafePoint().x, nearestColumn.getSafePoint().y);
 	}
+	
+	private void attack()
+	{
+		turbo = 2.0f;
+		
+		rageImage.toFront();
+		rageImage.setRotation(-this.getRotation());
+		rageImage.setOrigin((rageImage.getWidth()/2.0f),(rageImage.getHeight()/2.0f));
+		rageImage.setPosition(this.getX() + (this.getWidth()/2.0f) - (rageImage.getWidth()/2.0f), this.getY() + (this.getHeight()/2.0f) - (rageImage.getHeight()/2.0f));
+		
+		Player player = World.getInstance().player;
+			
+		seek( player.getX(), player.getY() );
+	}
+	
+	private void seek(float x, float y)
+	{
+		Vector2 targetVector = new Vector2( x - this.getX(), y - this.getY() );
+		
+		rotation = targetVector.nor().angle() - 90.0f;
+	}
+	
+	//---
 	
 	private Column getNearestColumn()
 	{
@@ -217,15 +203,6 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 		
 		return nearestColumn;		
 	}
-	
-	private void seek(float x, float y)
-	{
-		Vector2 targetVector = new Vector2( x - this.getX(), y - this.getY() );
-		
-		rotation = targetVector.nor().angle() - 90.0f;
-	}
-	
-	
 		
 	public void updateNeighbours()
 	{
@@ -249,51 +226,7 @@ public class Zombie extends GameObject implements Comparable<Zombie>
 			}
 		}
 	}
-		
-	@Override
-	protected void setForward() 
-	{
-	}
-
-	@Override
-	protected void setTurbo() 
-	{
-	}
-
-	@Override
-	protected void setRotation() 
-	{
-	}
-	
-	protected void updateState()
-	{
-		if( rage || currentState == ZombieState.ATTACK )
-		{
-			currentState = ZombieState.ATTACK;
-		}
-		else if( currentState != ZombieState.ATTACK && safe )
-		{
-			currentState = ZombieState.TRESSPASS;
-		}
-		else if( currentState != ZombieState.ATTACK && !safe )
-		{
-			rageImage.setVisible(false);
-			controller.setImmediatelyRotation(false);
 			
-			currentState = ZombieState.RUNAWAY;
-		}
-	}
-	
-	public void dispose()
-	{
-		super.dispose();
-		
-		for(Texture texture: textures)
-		{
-			texture.dispose();
-		}
-	}
-
 	@Override
 	public int compareTo(Zombie zombie) 
 	{

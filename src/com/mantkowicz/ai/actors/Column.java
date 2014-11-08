@@ -3,7 +3,6 @@ package com.mantkowicz.ai.actors;
 import com.badlogic.gdx.math.Vector2;
 import com.mantkowicz.ai.world.World;
 
-
 public class Column extends GameObject
 {	
 	public Column(float x, float y)
@@ -27,20 +26,5 @@ public class Column extends GameObject
 		translation.rotate(angle - 90.0f);
 		
 		return new Vector2( this.getCenter().x + translation.x, this.getCenter().y + translation.y );
-	}
-	
-	@Override
-	protected void setForward() 
-	{		
-	}
-
-	@Override
-	protected void setTurbo() 
-	{	
-	}
-
-	@Override
-	protected void setRotation() 
-	{	
 	}
 }

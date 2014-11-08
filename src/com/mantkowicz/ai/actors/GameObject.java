@@ -7,14 +7,16 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.utils.Array;
 import com.mantkowicz.ai.controller.Controller;
 import com.mantkowicz.ai.listener.Collision;
 import com.mantkowicz.ai.listener.ContactListener;
-import com.mantkowicz.ai.logger.Logger;
+import com.mantkowicz.ai.vars.CollisionSide;
 
 public abstract class GameObject extends Actor
 {	
-	protected Texture texture;
+	protected Array<Texture> textures;
 	protected TextureRegion textureRegion;
 
 	public Controller controller;
@@ -29,19 +31,25 @@ public abstract class GameObject extends Actor
 	protected boolean staticObject = true;
 	
 	protected abstract void step();
-	protected abstract void setForward();
-	protected abstract void setTurbo();
-	protected abstract void setRotation();
+	
+	protected ContactListener contactListener;
+	protected Collision collision;
 	
 	public GameObject(String avatarPath, float x, float y)
 	{
-		texture = new Texture( Gdx.files.internal(avatarPath) );
+		textures = new Array<Texture>();
+		
+		Texture texture = new Texture( Gdx.files.internal(avatarPath) );
 		texture.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
+		
+		textures.add(texture);
 		
 		textureRegion = new TextureRegion(texture);
 		
 		this.setSize(texture.getWidth(), texture.getHeight());
 		this.setPosition(x, y);
+		
+		contactListener = new ContactListener();
 		
 		controller = new Controller(this);
 		
@@ -55,36 +63,40 @@ public abstract class GameObject extends Actor
 	@Override
 	public void act(float delta)
 	{
-		setForward();
-		setTurbo();
-		setRotation();
-		
-		step();
-		
-		Vector2 sum = new Vector2(0,0);
+		Vector2 collisionVector = new Vector2(0,0);	
+				
 		if( !staticObject )
 		{
-			ContactListener cl = new ContactListener();
-			Collision collision = cl.checkCollision2(this);
-			
-			for(GameObject go: collision.objects)
+			collision = contactListener.checkCollision(this);
+				
+			for(int i = 0; i < collision.columns.size; i++ )
 			{
-
-				Vector2 colvec = new Vector2( this.getCenter().x - go.getCenter().x, this.getCenter().y - go.getCenter().y );
-				//colvec.nor();
+				if( collision.columnCollisionSides.get(i) != CollisionSide.DIRECT )
+				{
+					continue;
+				}
 				
-				Logger.log(this, "COLVEC = " + colvec.toString());
+				Vector2 partCollisionVector = new Vector2( this.getCenter().x - collision.columns.get(i).getCenter().x, this.getCenter().y - collision.columns.get(i).getCenter().y );
 				
-				sum.add(colvec);
+				collisionVector.add(partCollisionVector);	
+			}
+			
+			for(int i = 0; i < collision.zombies.size; i++ )
+			{
+				if( collision.zombieCollisionSides.get(i) != CollisionSide.DIRECT )
+				{
+					continue;
+				}
 				
+				Vector2 partCollisionVector = new Vector2( this.getCenter().x - collision.zombies.get(i).getCenter().x, this.getCenter().y - collision.zombies.get(i).getCenter().y );
 				
+				collisionVector.add(partCollisionVector);	
 			}
 		}
+
+		step();
 		
-		
-		
-		
-		controller.act(forward, speed, turbo, rotation, sum);
+		controller.act(forward, speed, turbo, rotation, collisionVector);
 	}
 	
 	@Override
@@ -105,13 +117,29 @@ public abstract class GameObject extends Actor
 		return (this.getWidth() / 2.0f);
 	}
 	
-	public float getSquaredRadius()
+	protected float getSquaredRadius()
 	{
 		return this.getRadius() * this.getRadius();
+	}
+	
+	protected Image createImage(String path)
+	{
+		Texture texture = new Texture( Gdx.files.internal(path) );
+		texture.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
+		
+		textures.add(texture);
+		
+		Image image = new Image(texture);
+		image.setVisible(false);
+		
+		return image;
 	}
 					
 	public void dispose()
 	{
-		texture.dispose();
+		for(Texture texture: textures)
+		{
+			texture.dispose();
+		}
 	}
 }
